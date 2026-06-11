@@ -1,0 +1,44 @@
+---
+- name: Collect OpenShift Pod Logs
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    namespace: "{{ namespace }}"
+    pod_name: "{{ pod_name }}"
+
+  tasks:
+
+    - name: Get pod logs
+      command:
+        cmd: >
+          oc logs {{ pod_name }}
+          -n {{ namespace }}
+          --tail=200
+      register: pod_logs
+      changed_when: false
+
+    - name: Get pod description
+      command:
+        cmd: >
+          oc describe pod {{ pod_name }}
+          -n {{ namespace }}
+      register: pod_description
+      changed_when: false
+
+    - name: Get namespace events
+      command:
+        cmd: >
+          oc get events
+          -n {{ namespace }}
+          --sort-by=.metadata.creationTimestamp
+      register: pod_events
+      changed_when: false
+
+    - name: Save data for AI triage
+      set_stats:
+        data:
+          pod_logs: "{{ pod_logs.stdout }}"
+          pod_description: "{{ pod_description.stdout }}"
+          pod_events: "{{ pod_events.stdout }}"
