@@ -1,0 +1,14 @@
+---
+- name: Scale Nginx Deployment
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+
+    - name: Scale deployment to 1 replica
+      kubernetes.core.k8s_scale:
+        api_version: apps/v1
+        kind: Deployment
+        name: nginx
+        namespace: demo
+        replicas: 1
