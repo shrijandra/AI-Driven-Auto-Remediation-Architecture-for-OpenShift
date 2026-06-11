@@ -1,0 +1,39 @@
+---
+- name: AI Triage for OpenShift Alerts
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    pod_logs: "{{ pod_logs | default('No logs provided') }}"
+
+  tasks:
+
+    - name: Verify OpenAI API key
+      debug:
+        msg: "OpenAI Key Loaded"
+
+    - name: Analyze OpenShift logs with OpenAI
+      uri:
+        url: https://api.openai.com/v1/responses
+        method: POST
+        headers:
+          Authorization: "Bearer {{ lookup('env','OPENAI_API_KEY') }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          model: gpt-5.5
+          input: |
+            Analyze the following OpenShift logs.
+
+            Return:
+            - root_cause
+            - severity
+            - recommended_action
+
+            Logs:
+            {{ pod_logs }}
+      register: ai_analysis
+
+    - name: Show AI response
+      debug:
+        var: ai_analysis.json
