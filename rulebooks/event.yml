@@ -8,11 +8,11 @@
       condition: event.alerts[0].labels.alertname == "DeploymentDown"
       action:
         run_job_template:
-          name: scale_deployment.yml
+          name: eda-test
           organization: Default
     - name: CrashLoopBackOff Recovery
       condition: event.alerts[0].labels.alertname == "PodCrashLooping"
       action:
         run_job_template:
-          name: collect_logs.yml
+          name: gather_logs
           organization: Default
