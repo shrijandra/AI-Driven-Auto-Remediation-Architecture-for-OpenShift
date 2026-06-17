@@ -5,8 +5,14 @@
         pg_port: 5432
   rules:
     - name: Application Down
-      condition: true
+      condition: event.alerts[0].labels.alertname == "DeploymentDown"
       action:
         run_job_template:
-          name: eda-test
+          name: scale_deployment.yml
           organization: Default
+    - name: CrashLoopBackOff Recovery
+      condition: event.alerts[0].labels.alertname == "PodCrashLooping"
+      action:
+        run_job_template:
+        name: collect_logs.yml
+        organization: Default
