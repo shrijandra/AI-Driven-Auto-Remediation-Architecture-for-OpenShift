@@ -14,5 +14,5 @@
       condition: event.alerts[0].labels.alertname == "PodCrashLooping"
       action:
         run_job_template:
-        name: collect_logs.yml
-        organization: Default
+          name: collect_logs.yml
+          organization: Default
