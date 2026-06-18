@@ -4,9 +4,6 @@
   connection: local
   gather_facts: false
 
-  vars:
-    namespace: "{{ event.payload.alerts[0].labels.namespace }}"
-    pod_name: "{{ event.payload.alerts[0].labels.pod }}"
 
   tasks:
     - name: Show variables
