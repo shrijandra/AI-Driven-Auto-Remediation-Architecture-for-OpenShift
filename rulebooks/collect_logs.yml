@@ -9,7 +9,12 @@
     pod_name: "{{ event.payload.alerts[0].labels.pod }}"
 
   tasks:
-
+    - name: Show variables
+      debug:
+        msg:
+          - "Namespace: {{ namespace }}"
+          - "Pod: {{ pod_name }}"
+          
     - name: Get pod logs
       command:
         cmd: >
@@ -18,6 +23,10 @@
           --tail=200
       register: pod_logs
       changed_when: false
+
+    - name: Display logs
+      debug:
+        var: pod_logs.stdout_lines
 
     - name: Get pod description
       command:
