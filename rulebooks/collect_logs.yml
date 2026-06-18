@@ -5,8 +5,8 @@
   gather_facts: false
 
   vars:
-    namespace: "{{ namespace }}"
-    pod_name: "{{ pod_name }}"
+    namespace: "{{ event.payload.alerts[0].labels.namespace }}"
+    pod_name: "{{ event.payload.alerts[0].labels.pod }}"
 
   tasks:
 
