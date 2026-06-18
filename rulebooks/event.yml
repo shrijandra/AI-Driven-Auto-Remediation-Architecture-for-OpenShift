@@ -16,3 +16,6 @@
         run_job_template:
           name: gather_logs
           organization: Default
+          extra_vars:
+            namespace: "{{ event.payload.alerts[0].labels.namespace }}"
+            pod_name: "{{ event.payload.alerts[0].labels.pod }}"
