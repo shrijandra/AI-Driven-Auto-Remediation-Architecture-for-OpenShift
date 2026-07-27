@@ -13,7 +13,7 @@
     - name: CrashLoopBackOff Recovery
       condition: event.payload.alerts[0].labels.alertname == "PodCrashLooping"
       action:
-        run_job_template:
+        run_workflow_template:
           name: gather_logs
           organization: Default
           extra_vars:
