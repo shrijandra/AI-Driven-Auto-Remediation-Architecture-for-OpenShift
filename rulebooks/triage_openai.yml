@@ -2,38 +2,69 @@
 - name: AI Triage for OpenShift Alerts
   hosts: localhost
   gather_facts: false
-
   vars:
     pod_logs: "{{ pod_logs | default('No logs provided') }}"
+    pod_logs_previous: "{{ pod_logs_previous | default('No previous logs provided') }}"
+    pod_description: "{{ pod_description | default('No description provided') }}"
+    pod_events: "{{ pod_events | default('No events provided') }}"
+    pod_name: "{{ pod_name | default('unknown') }}"
+    namespace: "{{ namespace | default('unknown') }}"
 
   tasks:
-
-    - name: Verify OpenAI API key
+    - name: Verify input variables
       debug:
-        msg: "OpenAI Key Loaded"
+        msg:
+          - "Namespace : {{ namespace }}"
+          - "Pod       : {{ pod_name }}"
+          - "Logs size : {{ pod_logs | length }} chars"
 
     - name: Analyze OpenShift logs with OpenAI
       uri:
         url: https://api.openai.com/v1/responses
         method: POST
         headers:
-          Authorization: "Bearer {{ lookup('env','OPENAI_API_KEY') }}"
+          Authorization: "Bearer {{ openai_api_key }}"
           Content-Type: "application/json"
         body_format: json
         body:
-          model: gpt-5.5
+          model: gpt-4o
           input: |
-            Analyze the following OpenShift logs.
+            You are an OpenShift/Kubernetes SRE expert. Analyze the following pod failure data.
 
-            Return:
-            - root_cause
-            - severity
-            - recommended_action
+            Pod: {{ pod_name }}
+            Namespace: {{ namespace }}
 
-            Logs:
+            === CURRENT CONTAINER LOGS ===
             {{ pod_logs }}
+
+            === PREVIOUS CONTAINER LOGS (pre-crash) ===
+            {{ pod_logs_previous }}
+
+            === POD DESCRIPTION ===
+            {{ pod_description }}
+
+            === NAMESPACE EVENTS ===
+            {{ pod_events }}
+
+            Return your analysis in this exact format:
+            ROOT CAUSE: <concise explanation>
+            SEVERITY: <critical|high|medium|low>
+            RECOMMENDED ACTION: <specific steps to resolve>
+        timeout: 60
+        validate_certs: true
       register: ai_analysis
 
-    - name: Show AI response
+    - name: Extract AI triage result
+      set_fact:
+        triage_result: "{{ ai_analysis.json.output[0].content[0].text }}"
+
+    - name: Show AI triage result
       debug:
-        var: ai_analysis.json
+        msg: "{{ triage_result }}"
+
+    - name: Save triage result as artifact
+      set_stats:
+        data:
+          triage_result: "{{ triage_result }}"
+          pod_name: "{{ pod_name }}"
+          namespace: "{{ namespace }}"
