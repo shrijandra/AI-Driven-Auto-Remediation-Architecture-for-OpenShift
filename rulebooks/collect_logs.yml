@@ -1,50 +1,69 @@
 ---
 - name: Collect OpenShift Pod Logs
   hosts: localhost
-  connection: local
   gather_facts: false
-
-
   tasks:
     - name: Show variables
       debug:
         msg:
           - "Namespace: {{ namespace }}"
           - "Pod: {{ pod_name }}"
-          
+
+    - name: Get pod info
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        name: "{{ pod_name }}"
+        namespace: "{{ namespace }}"
+      register: pod_info
+      failed_when: false
+
     - name: Get pod logs
-      command:
-        cmd: >
-          oc logs {{ pod_name }}
-          -n {{ namespace }}
-          --tail=200
+      kubernetes.core.k8s_log:
+        name: "{{ pod_name }}"
+        namespace: "{{ namespace }}"
+        tail_lines: 200
       register: pod_logs
-      changed_when: false
+      failed_when: false
+
+    - name: Get previous container logs
+      kubernetes.core.k8s_log:
+        name: "{{ pod_name }}"
+        namespace: "{{ namespace }}"
+        tail_lines: 200
+        previous: true
+      register: pod_logs_previous
+      failed_when: false
+
+    - name: Get namespace events
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Event
+        namespace: "{{ namespace }}"
+      register: events_raw
+      failed_when: false
+
+    - name: Format events
+      set_fact:
+        pod_events: >-
+          {{ events_raw.resources | default([])
+            | sort(attribute='metadata.creationTimestamp')
+            | map(attribute='message') | list | join('\n') }}
 
     - name: Display logs
       debug:
-        var: pod_logs.stdout_lines
-
-    - name: Get pod description
-      command:
-        cmd: >
-          oc describe pod {{ pod_name }}
-          -n {{ namespace }}
-      register: pod_description
-      changed_when: false
-
-    - name: Get namespace events
-      command:
-        cmd: >
-          oc get events
-          -n {{ namespace }}
-          --sort-by=.metadata.creationTimestamp
-      register: pod_events
-      changed_when: false
+        msg:
+          - "--- current logs ---"
+          - "{{ pod_logs.log_lines | default([]) }}"
+          - "--- previous logs ---"
+          - "{{ pod_logs_previous.log_lines | default([]) }}"
 
     - name: Save data for AI triage
       set_stats:
         data:
-          pod_logs: "{{ pod_logs.stdout }}"
-          pod_description: "{{ pod_description.stdout }}"
-          pod_events: "{{ pod_events.stdout }}"
+          pod_logs: "{{ pod_logs.log_lines | default([]) | join('\n') }}"
+          pod_logs_previous: "{{ pod_logs_previous.log_lines | default([]) | join('\n') }}"
+          pod_description: "{{ pod_info.resources[0] | default({}) | to_nice_json }}"
+          pod_events: "{{ pod_events }}"
+          pod_name: "{{ pod_name }}"
+          namespace: "{{ namespace }}"
