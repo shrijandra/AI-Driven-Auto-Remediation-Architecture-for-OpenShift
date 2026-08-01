@@ -3,6 +3,10 @@
   hosts: localhost
   gather_facts: false
   tasks:
+    - name: Check if SCC fix is needed
+      meta: end_play
+      when: needs_scc_fix is not defined or not needs_scc_fix | bool
+    
     - name: Show parameters
       debug:
         msg:
