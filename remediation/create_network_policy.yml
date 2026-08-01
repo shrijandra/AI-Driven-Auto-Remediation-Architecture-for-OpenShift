@@ -3,6 +3,10 @@
   hosts: localhost
   gather_facts: false
   tasks:
+    - name: Check if network policy is needed
+      meta: end_play
+      when: needs_network_policy is not defined or not needs_network_policy | bool
+      
     - name: Show parameters
       debug:
         msg:
