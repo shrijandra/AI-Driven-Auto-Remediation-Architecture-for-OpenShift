@@ -16,7 +16,7 @@
         msg:
           - "Namespace : {{ namespace }}"
           - "Pod       : {{ pod_name }}"
-          - "Logs size : {{ pod_logs | length }} chars"
+          - "Logs size : {{ pod_logs | default('') | length }} chars"
 
     - name: Analyze OpenShift logs with OpenAI
       uri:
@@ -29,42 +29,84 @@
         body:
           model: gpt-4o
           input: |
-            You are an OpenShift/Kubernetes SRE expert. Analyze the following pod failure data.
+            You are an OpenShift SRE expert. Analyze this pod failure.
 
             Pod: {{ pod_name }}
             Namespace: {{ namespace }}
 
-            === CURRENT CONTAINER LOGS ===
+            === CURRENT LOGS ===
             {{ pod_logs }}
 
-            === PREVIOUS CONTAINER LOGS (pre-crash) ===
-            {{ pod_logs_previous }}
+            === PREVIOUS LOGS ===
+            {{ pod_logs_previous | default('none') }}
 
             === POD DESCRIPTION ===
-            {{ pod_description }}
+            {{ pod_description | default('none') }}
 
-            === NAMESPACE EVENTS ===
-            {{ pod_events }}
+            === EVENTS ===
+            {{ pod_events | default('none') }}
 
-            Return your analysis in this exact format:
-            ROOT CAUSE: <concise explanation>
-            SEVERITY: <critical|high|medium|low>
-            RECOMMENDED ACTION: <specific steps to resolve>
+            Respond ONLY in this exact JSON format, no extra text:
+            {
+              "root_cause": "<concise explanation>",
+              "severity": "<critical|high|medium|low>",
+              "recommended_action": "<specific steps>",
+              "remediation_type": "<network_policy|restart_pod|scale_deployment|manual>",
+              "target_app": "<app label of the affected service or null>",
+              "source_namespace": "<namespace that needs access or null>",
+              "source_app": "<app that needs access or null>",
+              "target_port": <port number or null>
+            }
         timeout: 60
-        validate_certs: true
       register: ai_analysis
 
-    - name: Extract AI triage result
+    - name: Parse AI JSON response
       set_fact:
-        triage_result: "{{ ai_analysis.json.output[0].content[0].text }}"
+        triage_json: "{{ ai_analysis.json.output[0].content[0].text | from_json }}"
 
     - name: Show AI triage result
       debug:
-        msg: "{{ triage_result }}"
+        msg:
+          - "ROOT CAUSE         : {{ triage_json.root_cause }}"
+          - "SEVERITY           : {{ triage_json.severity }}"
+          - "RECOMMENDED ACTION : {{ triage_json.recommended_action }}"
+          - "REMEDIATION TYPE   : {{ triage_json.remediation_type }}"
 
-    - name: Save triage result as artifact
+    - name: Set remediation flags
+      set_fact:
+        needs_network_policy: "{{ triage_json.remediation_type == 'network_policy' }}"
+        needs_scc_fix: "{{ triage_json.remediation_type == 'scc_permission' }}"
+        needs_restart: "{{ triage_json.remediation_type == 'restart_pod' }}"
+        needs_scale: "{{ triage_json.remediation_type == 'scale_deployment' }}"
+
+    - name: Save all artifacts for next workflow node
       set_stats:
         data:
-          triage_result: "{{ triage_result }}"
+          # Triage results
+          triage_result: "{{ triage_json.root_cause }}"
+          severity: "{{ triage_json.severity }}"
+          recommended_action: "{{ triage_json.recommended_action }}"
+          remediation_type: "{{ triage_json.remediation_type }}"
+
+          # Remediation flags
+          needs_network_policy: "{{ triage_json.remediation_type == 'network_policy' }}"
+          needs_scc_fix: "{{ triage_json.remediation_type == 'scc_permission' }}"   
+          needs_restart: "{{ triage_json.remediation_type == 'restart_pod' }}"
+          needs_scale: "{{ triage_json.remediation_type == 'scale_deployment' }}"
+
+          # SCC parameters
+          service_account: "{{ triage_json.service_account | default('nginx-sa') }}"
+          scc: "{{ triage_json.scc | default('anyuid') }}"
+          deployment_name: "{{ triage_json.deployment_name | default('nginx') }}"
+          restart_deployment: true
+
+          # Network policy parameters (populated by AI)
+          target_namespace: "{{ namespace }}"
+          target_app: "{{ triage_json.target_app | default('mysql') }}"
+          source_namespace: "{{ triage_json.source_namespace | default('frontend') }}"
+          source_app: "{{ triage_json.source_app | default('frontend-checker') }}"
+          target_port: "{{ triage_json.target_port | default(3306) }}"
+
+          # Pass through for reference
           pod_name: "{{ pod_name }}"
           namespace: "{{ namespace }}"
