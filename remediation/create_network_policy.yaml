@@ -1,0 +1,53 @@
+---
+- name: Create Network Policy
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Show parameters
+      debug:
+        msg:
+          - "Target namespace : {{ target_namespace }}"
+          - "Target app       : {{ target_app }}"
+          - "Source namespace : {{ source_namespace }}"
+          - "Source app       : {{ source_app }}"
+          - "Port             : {{ target_port }}"
+          - "Protocol         : {{ protocol | default('TCP') }}"
+
+    - name: Create NetworkPolicy
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: networking.k8s.io/v1
+          kind: NetworkPolicy
+          metadata:
+            name: "allow-{{ source_app }}-to-{{ target_app }}"
+            namespace: "{{ target_namespace }}"
+          spec:
+            podSelector:
+              matchLabels:
+                app: "{{ target_app }}"
+            policyTypes:
+              - Ingress
+            ingress:
+              - from:
+                  - namespaceSelector:
+                      matchLabels:
+                        kubernetes.io/metadata.name: "{{ source_namespace }}"
+                  - podSelector:
+                      matchLabels:
+                        app: "{{ source_app }}"
+                ports:
+                  - protocol: "{{ protocol | default('TCP') }}"
+                    port: "{{ target_port | int }}"
+
+    - name: Verify NetworkPolicy created
+      kubernetes.core.k8s_info:
+        api_version: networking.k8s.io/v1
+        kind: NetworkPolicy
+        name: "allow-{{ source_app }}-to-{{ target_app }}"
+        namespace: "{{ target_namespace }}"
+      register: policy_result
+
+    - name: Show result
+      debug:
+        msg: "NetworkPolicy {{ policy_result.resources[0].metadata.name }} created successfully"
