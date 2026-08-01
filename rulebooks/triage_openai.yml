@@ -51,18 +51,33 @@
               "root_cause": "<concise explanation>",
               "severity": "<critical|high|medium|low>",
               "recommended_action": "<specific steps>",
-              "remediation_type": "<network_policy|restart_pod|scale_deployment|manual>",
-              "target_app": "<app label of the affected service or null>",
+              "remediation_type": "<scc_permission|network_policy|restart_pod|scale_deployment|manual>",
+              "service_account": "<service account name or null>",
+              "scc": "<anyuid|privileged|restricted or null>",
+              "deployment_name": "<deployment name or null>",
+              "target_app": "<app label or null>",
               "source_namespace": "<namespace that needs access or null>",
               "source_app": "<app that needs access or null>",
-              "target_port": <port number or null>
+              "target_port": null
             }
         timeout: 60
       register: ai_analysis
+      
+    - name: Extract raw AI response
+      set_fact:
+        raw_response: "{{ ai_analysis.json.output[0].content[0].text }}"
+
+    - name: Show raw response for debugging
+      debug:
+        msg: "{{ raw_response }}"
 
     - name: Parse AI JSON response
       set_fact:
-        triage_json: "{{ ai_analysis.json.output[0].content[0].text | from_json }}"
+        triage_json: "{{ raw_response | regex_replace('```json', '') | regex_replace('```', '') | trim | from_json }}"    
+        
+    - name: Parse AI JSON response
+      set_fact:
+        triage_json: "{{ ai_analysis.json.output[0].content[0].text | regex_replace('```json', '') | regex_replace('```', '') | trim | from_json }}"
 
     - name: Show AI triage result
       debug:
