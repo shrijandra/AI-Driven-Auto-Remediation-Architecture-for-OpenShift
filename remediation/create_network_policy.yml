@@ -42,7 +42,7 @@
                         app: "{{ source_app }}"
                 ports:
                   - protocol: "{{ protocol | default('TCP') }}"
-                    port: "{{ target_port | default(3306) | int }}"
+                    port: 3306
 
     - name: Verify NetworkPolicy created
       kubernetes.core.k8s_info:
