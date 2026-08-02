@@ -3,8 +3,6 @@
   sources:
     - ansible.eda.pg_listener:
         pg_port: 5432
-    - eda.builtin.pg_listener: 
-        pg_port: 5432
   rules:
     - name: Debug incoming event
       condition: event.payload is defined
