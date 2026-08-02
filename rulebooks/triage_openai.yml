@@ -63,6 +63,25 @@
               "source_app: the app trying to connect (frontend-checker)",
               "target_port: integer port number, no quotes (3306)"
             }
+            PRIORITY ORDER for analysis:
+            1. Pod logs are the PRIMARY source of truth
+            2. Events are SECONDARY context only
+            3. Node-level issues (disk pressure, memory) are BACKGROUND noise
+               - Never choose "manual" just because of node pressure
+               - Focus on what the APPLICATION log shows
+
+            The log shows:
+            "Unable to connect to mysql-service.backend.svc.cluster.local:3306"
+            "Error: timed out"
+
+            This is a NETWORK CONNECTIVITY issue between namespaces.
+            Node disk pressure does NOT cause inter-namespace connection timeouts.
+
+            STRICT RULES:
+            - Connection timeout to *.svc.cluster.local → ALWAYS network_policy
+            - Permission denied on filesystem → ALWAYS scc_permission  
+            - Node disk pressure alone → NOT a reason for manual
+            - NEVER choose manual if logs show a clear connection error
         timeout: 60
       register: ai_analysis
       
