@@ -16,10 +16,7 @@
           - "Source app       : {{ source_app }}"
           - "Port             : {{ target_port }}"
           - "Protocol         : {{ protocol | default('TCP') }}"
-    - name: Set port as integer
-      set_fact:
-        port_int: "{{ target_port | int }}"
-        
+          
     - name: Create NetworkPolicy
       kubernetes.core.k8s:
         state: present
@@ -45,7 +42,7 @@
                         app: "{{ source_app }}"
                 ports:
                   - protocol: "{{ protocol | default('TCP') }}"
-                    port: "{{ port_int }}"
+                    port: !!int "{{ target_port | int }}"
 
     - name: Verify NetworkPolicy created
       kubernetes.core.k8s_info:
