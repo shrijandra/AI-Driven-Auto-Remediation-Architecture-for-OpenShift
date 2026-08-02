@@ -119,7 +119,7 @@
           restart_deployment: true
 
           # Network policy parameters (populated by AI)
-          target_namespace: "{{ namespace }}"
+          target_namespace: "{{ triage_json.target_namespace | default(backend) }}"
           target_app: "{{ triage_json.target_app | default('mysql') }}"
           source_namespace: "{{ triage_json.source_namespace | default('frontend') }}"
           source_app: "{{ triage_json.source_app | default('frontend-checker') }}"
