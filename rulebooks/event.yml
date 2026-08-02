@@ -4,17 +4,12 @@
     - ansible.eda.pg_listener:
         pg_port: 5432
   rules:
-   # - name: Application Down
-   #   condition: event.payload.alerts[0].labels.alertname == "DeploymentDown"
-   #   action:
-   #     run_job_template:
-   #       name: eda-test
-   #       organization: Default 
     - name: Debug incoming event
       condition: event.payload is defined
       action:
         debug:
           msg: "{{ event }}"
+
     - name: CrashLoopBackOff Recovery
       condition: event.payload.alerts[0].labels.alertname == "PodCrashLooping"
       action:
