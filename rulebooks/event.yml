@@ -10,6 +10,11 @@
    #     run_job_template:
    #       name: eda-test
    #       organization: Default 
+    - name: Debug incoming event
+      condition: event.payload is defined
+      action:
+        debug:
+          msg: "{{ event }}"
     - name: CrashLoopBackOff Recovery
       condition: event.payload.alerts[0].labels.alertname == "PodCrashLooping"
       action:
