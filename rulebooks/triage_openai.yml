@@ -57,10 +57,11 @@
               "NEVER return "restricted-v2 or restricted" as scc value",
               "restricted-v2 or restricted are the default SCC and will not fix permission issues",
               "deployment_name": "<deployment name or null>",
-              "target_app": "<app label or null>",
-              "source_namespace": "<namespace that needs access or null>",
-              "source_app": "<app that needs access or null>",
-              "target_port": null
+              "target_namespace: the namespace being connected TO (backend)",
+              "target_app: the app being connected TO (mysql)",
+              "source_namespace: the namespace trying to connect (frontend)",
+              "source_app: the app trying to connect (frontend-checker)",
+              "target_port: integer port number, no quotes (3306)"
             }
         timeout: 60
       register: ai_analysis
