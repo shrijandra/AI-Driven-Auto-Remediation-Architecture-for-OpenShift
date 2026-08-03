@@ -8,11 +8,16 @@
 
   rules:
     - name: Confirm CrashLoop rule matched
-      condition: event.payload is defined
+      condition: >-
+        event.payload.alerts is defined and
+        event.payload.status == "firing" and
+        event.payload.alerts[0].status == "firing" and
+        event.payload.alerts[0].labels.alertname == "PodCrashLooping"
+        event.payload.alerts[0].labels.pod is defined
       action:
         debug:
           msg:
-            - "CrashLoop rule matched: {{ event.payload.alerts[0].labels.alertname }}"
+            - "CrashLoop rule matched"
             - "Namespace: {{ event.payload.alerts[0].labels.namespace }}"
             - "Pod: {{ event.payload.alerts[0].labels.pod }}"
 
