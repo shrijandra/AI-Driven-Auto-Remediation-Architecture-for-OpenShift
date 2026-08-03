@@ -1,17 +1,31 @@
+---
 - name: OpenShift Auto Recovery
   hosts: all
+
   sources:
     - ansible.eda.pg_listener:
         pg_port: 5432
+
   rules:
-    - name: Debug incoming event
-      condition: event.payload is defined
+    - name: Confirm CrashLoop rule matched
+      condition: >-
+        event.payload.alerts is defined and
+        event.payload.status == "firing" and
+        event.payload.alerts[0].status == "firing" and
+        event.payload.alerts[0].labels.alertname == "PodCrashLooping"
       action:
         debug:
-          msg: "{{ event }}"
+          msg:
+            - "CrashLoop rule matched"
+            - "Namespace: {{ event.payload.alerts[0].labels.namespace }}"
+            - "Pod: {{ event.payload.alerts[0].labels.pod }}"
 
-    - name: CrashLoopBackOff Recovery
-      condition: event.payload.alerts[0].labels.alertname == "PodCrashLooping"
+    - name: Launch gather logs workflow
+      condition: >-
+        event.payload.alerts is defined and
+        event.payload.status == "firing" and
+        event.payload.alerts[0].status == "firing" and
+        event.payload.alerts[0].labels.alertname == "PodCrashLooping"
       action:
         run_workflow_template:
           name: gather_logs
@@ -20,3 +34,4 @@
             extra_vars:
               namespace: "{{ event.payload.alerts[0].labels.namespace }}"
               pod_name: "{{ event.payload.alerts[0].labels.pod }}"
+              alert_name: "{{ event.payload.alerts[0].labels.alertname }}"
