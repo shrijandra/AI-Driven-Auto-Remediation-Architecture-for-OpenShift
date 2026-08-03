@@ -1,6 +1,7 @@
 ---
 - name: OpenShift Auto Recovery
   hosts: all
+  match_multiple_rules: true
 
   sources:
     - ansible.eda.pg_listener:
