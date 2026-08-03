@@ -12,8 +12,9 @@
         event.payload.alerts is defined and
         event.payload.status == "firing" and
         event.payload.alerts[0].status == "firing" and
+        event.payload.alerts[0].labels.pod is defined and
         event.payload.alerts[0].labels.alertname == "PodCrashLooping"
-        event.payload.alerts[0].labels.pod is defined
+        
       action:
         debug:
           msg:
