@@ -93,14 +93,6 @@
       debug:
         msg: "{{ raw_response }}"
 
-    - name: Parse AI JSON response
-      set_fact:
-        triage_json: "{{ raw_response | regex_replace('```json', '') | regex_replace('```', '') | trim | from_json }}"    
-        
-    - name: Parse AI JSON response
-      set_fact:
-        triage_json: "{{ ai_analysis.json.output[0].content[0].text | regex_replace('```json', '') | regex_replace('```', '') | trim | from_json }}"
-
     - name: Show AI triage result
       debug:
         msg:
