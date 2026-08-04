@@ -95,7 +95,10 @@
 
     - name: Parse AI JSON response
       set_fact:
-        triage_json: "{{ raw_response | regex_replace('```json', '') | regex_replace('```', '') | trim | from_json }}"    
+        triage_json: "{{ raw_response | regex_replace('```json', '') | regex_replace('```', '') | trim | from_json }}"
+      no_log: false
+      vars:
+        ansible_jinja2_native: true
 
     - name: Show AI triage result
       debug:
