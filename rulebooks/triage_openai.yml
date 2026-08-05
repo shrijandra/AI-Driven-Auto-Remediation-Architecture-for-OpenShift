@@ -53,8 +53,8 @@
               "recommended_action": "<specific steps>",
               "remediation_type": "<scc_permission|network_policy|restart_pod|scale_deployment|manual>",
               "service_account": "<service account name or null>",
-              "scc field MUST always be "anyuid" for nginx permission errors",
-              "NEVER return "restricted-v2 or restricted" as scc value",
+              "scc field MUST always be \"anyuid\" for nginx permission errors": "anyuid",
+              "NEVER return \"restricted-v2 or restricted\" as scc value": "restricted-v2",
               "restricted-v2 or restricted are the default SCC and will not fix permission issues",
               "deployment_name": "<deployment name or null>",
               "target_namespace: the namespace being connected TO (backend)",
@@ -115,6 +115,13 @@
         needs_restart: "{{ triage_json.remediation_type == 'restart_pod' }}"
         needs_scale: "{{ triage_json.remediation_type == 'scale_deployment' }}"
 
+    - name: Override deployment name from pod name
+      set_fact:
+        triage_json: "{{ triage_json | combine({
+          'deployment_name': pod_name | regex_replace('-[a-z0-9]+-[a-z0-9]+$', ''),
+          'scc': 'anyuid' if triage_json.remediation_type == 'scc_permission' else triage_json.scc | default('anyuid')
+          }) }}"
+
     - name: Save all artifacts for next workflow node
       set_stats:
         data:
@@ -133,7 +140,7 @@
           # SCC parameters
           service_account: "{{ triage_json.service_account | default('nginx-sa') }}"
           scc: "{{ triage_json.scc | default('anyuid') }}"
-          deployment_name: "{{ triage_json.deployment_name | default('nginx') }}"
+          deployment_name: "{{ pod_name | regex_replace('-[a-z0-9]+-[a-z0-9]+$', '') }}"
           restart_deployment: true
 
           # Network policy parameters (populated by AI)
