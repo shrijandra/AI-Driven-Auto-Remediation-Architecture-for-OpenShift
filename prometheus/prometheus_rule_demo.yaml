@@ -1,0 +1,33 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nginx-alerts
+  namespace: demo
+spec:
+  groups:
+
+  - name: pod.rules
+    rules:
+    - alert: PodCrashLooping
+      expr: |
+        kube_pod_container_status_waiting_reason{
+        namespace="demo",
+        reason="CrashLoopBackOff"
+        } == 1
+      labels:
+        severity: critical
+      annotations:
+        summary: "Pod is CrashLooping"
+        description: "Container is restarting repeatedly"
+  - name: deployment.rules
+    rules:
+    - alert: DeploymentDown
+      expr: kube_deployment_status_replicas_available{deployment="nginx"} == 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Deployment frontend-checker is down"
+        description: "No available replicas for deployment frontend-checker for more than 1 minute"
+
+  
