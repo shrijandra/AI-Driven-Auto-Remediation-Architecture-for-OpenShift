@@ -1,0 +1,30 @@
+apiVersion: monitoring.coreos.com/v1beta1
+kind: AlertmanagerConfig
+metadata:
+  name: aap-eda
+  namespace: frontend
+spec:
+  route:
+    receiver: aap-eda
+    groupBy: ["alertname"]
+    groupWait: 30s
+    groupInterval: 5m
+    repeatInterval: 10m
+    matchers:
+      - name: namespace       
+        value: frontend
+        matchType: "="
+  receivers:
+    - name: aap-eda
+      webhookConfigs:
+        - url: "https://sandbox-aap-shrijandra-dev.apps.rm3.7wse.p1.openshiftapps.com/eda-event-streams/api/eda/v1/external_event_stream/a9ac6939-3c22-4794-ba20-f62eb3ad52db/post/"
+          sendResolved: false
+          httpConfig:
+            basicAuth:
+              username:
+                name: eda-secret
+                key: username
+              password:
+                name: eda-secret
+                key: password
+
